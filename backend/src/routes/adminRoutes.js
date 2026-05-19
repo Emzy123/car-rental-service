@@ -11,6 +11,8 @@ import {
   listBookings,
   patchBooking,
   listClients,
+  exportBookingsCSV,
+  exportClientsCSV,
 } from '../controllers/adminController.js';
 
 const router = Router();
@@ -27,8 +29,10 @@ router.put('/vehicles/:id', updateVehicle);
 router.delete('/vehicles/:id', deleteVehicle);
 
 router.get('/bookings', listBookings);
+router.get('/bookings/export', exportBookingsCSV);
 router.patch('/bookings/:id', patchBooking);
 
 router.get('/clients', listClients);
+router.get('/clients/export', exportClientsCSV);
 
 export default router;

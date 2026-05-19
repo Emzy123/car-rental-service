@@ -39,6 +39,55 @@ export async function isVehicleAvailable(client, vehicleId, startDate, endDate, 
   return { available: true, vehicle };
 }
 
+export async function searchVehicles({
+  query,
+  startDate,
+  endDate,
+  limit = 20,
+}) {
+  const params = [];
+  let paramIndex = 1;
+  
+  // Build the search query
+  const searchConditions = [];
+  
+  if (query && query.trim()) {
+    params.push(query.trim());
+    searchConditions.push(`v.search_vector @@ plainto_tsquery('english', $${paramIndex++})`);
+  }
+  
+  if (startDate && endDate) {
+    params.push(endDate, startDate, BLOCKING_STATUSES);
+    searchConditions.push(`NOT EXISTS (
+      SELECT 1 FROM bookings b
+      WHERE b.vehicle_id = v.id
+        AND b.status = ANY($${paramIndex + 2})
+        AND b.start_date < $${paramIndex}
+        AND b.end_date > $${paramIndex + 1}
+    )`);
+    paramIndex += 3;
+  }
+  
+  // Always filter out unavailable vehicles
+  searchConditions.push(`v.status NOT IN ('maintenance', 'retired')`);
+  
+  const whereClause = searchConditions.join(' AND ');
+  
+  const searchSql = `
+    SELECT v.*,
+      ts_rank(v.search_vector, plainto_tsquery('english', $1)) as rank
+    FROM vehicles v
+    WHERE ${whereClause}
+    ORDER BY ${query ? 'rank DESC, ' : ''}v.daily_rate ASC
+    LIMIT $${paramIndex++}
+  `;
+  
+  params.push(limit);
+  
+  const result = await pool.query(searchSql, params);
+  return result.rows;
+}
+
 export async function getAvailableVehicles({
   startDate,
   endDate,
@@ -49,6 +98,7 @@ export async function getAvailableVehicles({
   maxPrice,
   seats,
   features,
+  searchQuery,
   sort = 'recommended',
   page = 1,
   limit = 12,
@@ -87,6 +137,12 @@ export async function getAvailableVehicles({
       filters.push(`v.features @> $${paramIndex++}::text[]`);
       params.push(featureList);
     }
+  }
+  
+  // Add full-text search if provided
+  if (searchQuery && searchQuery.trim()) {
+    filters.push(`v.search_vector @@ plainto_tsquery('english', $${paramIndex++})`);
+    params.push(searchQuery.trim());
   }
 
   const orderMap = {

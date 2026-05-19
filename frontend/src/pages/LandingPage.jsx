@@ -55,12 +55,12 @@ export default function LandingPage() {
           style={{ backgroundImage: "url('https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1920&auto=format&fit=crop')" }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/55 to-primary-900/95" />
-        <div className="relative mx-auto max-w-7xl px-4 pb-24 pt-14 sm:px-6 md:pt-24">
+        <div className="relative mx-auto max-w-7xl px-4 pb-28 pt-16 sm:px-6 sm:pb-24 sm:pt-20 md:pt-24">
           <motion.p
             initial={{ opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-sm uppercase tracking-widest text-secondary-400"
+            className="text-xs uppercase tracking-widest text-secondary-400 sm:text-sm"
           >
             Premium car rental
           </motion.p>
@@ -68,16 +68,16 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="mt-4 max-w-3xl font-display text-4xl font-bold leading-tight text-white md:text-6xl lg:text-7xl"
+            className="mt-4 max-w-3xl font-display text-3xl font-bold leading-tight text-white drop-shadow-lg sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl"
           >
             Luxury Travel.{' '}
-            <span className="text-secondary-400">Unlocked.</span>
+            <span className="text-secondary-400 drop-shadow-lg">Unlocked.</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="mt-6 max-w-xl text-lg text-gray-200"
+            className="mt-4 max-w-xl text-base text-gray-100 drop-shadow-md sm:mt-6 sm:text-lg"
           >
             Experience premium vehicles with white-glove service at 500+ locations worldwide.
           </motion.p>
@@ -85,7 +85,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.35 }}
-            className="mt-10 max-w-5xl"
+            className="mt-8 max-w-5xl sm:mt-10"
           >
             <SearchWidget />
           </motion.div>
@@ -96,13 +96,13 @@ export default function LandingPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6, duration: 0.5 }}
-          className="absolute bottom-0 left-0 right-0 border-t border-white/10 bg-primary-900/80 backdrop-blur-sm"
+          className="absolute bottom-0 left-0 right-0 border-t border-white/10 bg-primary-900/90 backdrop-blur-sm"
         >
-          <div className="mx-auto flex max-w-7xl flex-wrap justify-around gap-6 px-4 py-5">
+          <div className="mx-auto flex max-w-7xl flex-wrap justify-around gap-x-4 gap-y-3 px-4 py-4 sm:gap-6 sm:py-5">
             {stats.map((s) => (
               <div key={s.label} className="text-center">
-                <p className="text-2xl font-bold text-secondary-400">{s.value}</p>
-                <p className="text-xs text-gray-400">{s.label}</p>
+                <p className="text-lg font-bold text-secondary-400 sm:text-2xl">{s.value}</p>
+                <p className="text-[10px] text-gray-400 sm:text-xs">{s.label}</p>
               </div>
             ))}
           </div>
@@ -121,13 +121,13 @@ export default function LandingPage() {
             <motion.h2 variants={fadeUp} className="font-display text-3xl font-bold text-primary-500">
               Browse by category
             </motion.h2>
-            <motion.div variants={fadeUp} className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            <motion.div variants={fadeUp} className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-6">
               {categories.map((c) => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() => goCategory(c.id)}
-                  className="group relative h-36 overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-500"
+                  className="group relative h-28 sm:h-36 overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-500"
                 >
                   <img
                     src={c.img}
@@ -136,7 +136,7 @@ export default function LandingPage() {
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-primary-900/80 to-transparent" />
-                  <span className="absolute bottom-3 left-0 right-0 text-center text-sm font-semibold text-white">
+                  <span className="absolute bottom-2 sm:bottom-3 left-0 right-0 text-center text-xs sm:text-sm font-semibold text-white">
                     {c.label}
                   </span>
                 </button>
@@ -159,18 +159,18 @@ export default function LandingPage() {
               <h2 className="font-display text-3xl font-bold text-primary-500">Why DriveRent?</h2>
               <p className="mt-3 text-gray-500">Everything you need for a seamless rental experience.</p>
             </motion.div>
-            <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-8 sm:mt-12 grid gap-4 sm:gap-8 sm:grid-cols-2 lg:grid-cols-4">
               {features.map((f) => (
                 <motion.div
                   key={f.title}
                   variants={fadeUp}
-                  className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm"
+                  className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6 shadow-sm"
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50">
-                    <f.icon className="h-6 w-6 text-primary-500" />
+                  <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-primary-50">
+                    <f.icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary-500" />
                   </div>
-                  <h3 className="mt-4 font-semibold text-primary-500">{f.title}</h3>
-                  <p className="mt-2 text-sm text-gray-500">{f.desc}</p>
+                  <h3 className="mt-3 sm:mt-4 font-semibold text-primary-500 text-sm sm:text-base">{f.title}</h3>
+                  <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-500">{f.desc}</p>
                 </motion.div>
               ))}
             </div>
@@ -190,22 +190,22 @@ export default function LandingPage() {
             <motion.h2 variants={fadeUp} className="text-center font-display text-3xl font-bold text-primary-500">
               What our customers say
             </motion.h2>
-            <div className="mt-10 grid gap-6 sm:grid-cols-3">
+            <div className="mt-8 sm:mt-10 grid gap-4 sm:gap-6 sm:grid-cols-3">
               {testimonials.map((t) => (
                 <motion.div
                   key={t.name}
                   variants={fadeUp}
-                  className="rounded-xl bg-white p-6 shadow-sm"
+                  className="rounded-xl bg-white p-4 sm:p-6 shadow-sm"
                 >
                   <div className="flex gap-0.5">
                     {Array.from({ length: t.rating }).map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-secondary-500 text-secondary-500" />
+                      <Star key={i} className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-secondary-500 text-secondary-500" />
                     ))}
                   </div>
-                  <p className="mt-3 text-sm text-gray-600">&ldquo;{t.text}&rdquo;</p>
+                  <p className="mt-3 text-xs sm:text-sm text-gray-600">&ldquo;{t.text}&rdquo;</p>
                   <div className="mt-4">
-                    <p className="font-semibold text-primary-500">{t.name}</p>
-                    <p className="text-xs text-gray-400">{t.role}</p>
+                    <p className="font-semibold text-primary-500 text-sm sm:text-base">{t.name}</p>
+                    <p className="text-[10px] sm:text-xs text-gray-400">{t.role}</p>
                   </div>
                 </motion.div>
               ))}
@@ -215,16 +215,16 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="bg-primary-500 py-20">
+      <section className="bg-primary-500 py-16 sm:py-20">
         <motion.div
           initial={{ opacity: 0, scale: 0.97 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
           className="mx-auto max-w-2xl px-4 text-center"
         >
-          <h2 className="font-display text-3xl font-bold text-white">Ready to hit the road?</h2>
-          <p className="mt-3 text-primary-200">Browse our fleet and book your perfect vehicle today.</p>
-          <Button variant="secondary" size="xl" asChild className="mt-8">
+          <h2 className="font-display text-2xl sm:text-3xl font-bold text-white">Ready to hit the road?</h2>
+          <p className="mt-3 text-sm sm:text-base text-primary-200">Browse our fleet and book your perfect vehicle today.</p>
+          <Button variant="secondary" size="lg" asChild className="mt-6 sm:mt-8">
             <Link to="/vehicles" className="inline-flex items-center gap-2">
               Explore fleet <ArrowRight className="h-5 w-5" />
             </Link>
@@ -233,15 +233,15 @@ export default function LandingPage() {
       </section>
 
       {/* ── Trust bar ── */}
-      <section className="border-t border-gray-200 bg-white py-10">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-8 px-4 text-sm text-gray-400">
+      <section className="border-t border-gray-200 bg-white py-6 sm:py-10">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-4 sm:gap-8 px-4 text-xs sm:text-sm text-gray-400">
           <span>PCI Compliant</span>
-          <span className="h-4 w-px bg-gray-200" />
+          <span className="hidden sm:block h-4 w-px bg-gray-200" />
           <span>GDPR Ready</span>
-          <span className="h-4 w-px bg-gray-200" />
+          <span className="hidden sm:block h-4 w-px bg-gray-200" />
           <span>ISO 27001</span>
-          <span className="h-4 w-px bg-gray-200" />
-          <span>Paystack Secure Payments</span>
+          <span className="hidden sm:block h-4 w-px bg-gray-200" />
+          <span>Paystack Secure</span>
         </div>
       </section>
     </div>

@@ -14,6 +14,10 @@ export default function BookingConfirmedPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
     (async () => {
       try {
         const res = await apiRequest(`/bookings/${id}`);
@@ -25,7 +29,24 @@ export default function BookingConfirmedPage() {
   }, [id]);
 
   if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
-  if (!data) return <p className="py-20 text-center text-error">Booking not found</p>;
+  if (!id) {
+    return (
+      <div className="py-20 text-center">
+        <p className="text-error">Invalid booking reference</p>
+        <Link to="/dashboard/bookings" className="mt-4 inline-block text-secondary-600 hover:underline">
+          View my reservations
+        </Link>
+      </div>
+    );
+  }
+  if (!data) return (
+    <div className="py-20 text-center">
+      <p className="text-error">Booking not found</p>
+      <Link to="/dashboard/bookings" className="mt-4 inline-block text-secondary-600 hover:underline">
+        View my reservations
+      </Link>
+    </div>
+  );
 
   const { booking } = data;
   const currency = 'NGN';

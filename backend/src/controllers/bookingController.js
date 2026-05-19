@@ -302,3 +302,120 @@ export async function cancelBooking(req, res, next) {
     dbClient.release();
   }
 }
+
+export async function modifyBooking(req, res, next) {
+  const client = await pool.connect();
+  try {
+    const bookingId = req.params.id;
+    const { start_date, end_date, pickup_location_id, return_location_id, pickup_time, return_time, special_requests } = req.body;
+
+    // Get current booking
+    const currentBooking = await getBookingForClient(bookingId, req.user.id);
+
+    // Only allow modification of pending or confirmed bookings
+    if (!['pending', 'confirmed'].includes(currentBooking.status)) {
+      throw new AppError(`Cannot modify a ${currentBooking.status} booking`, 400);
+    }
+
+    // Validate new dates if provided
+    let newStartDate = start_date || currentBooking.start_date;
+    let newEndDate = end_date || currentBooking.end_date;
+
+    if (start_date || end_date) {
+      const { days } = validateBookingDates(newStartDate, newEndDate);
+      const newPricing = calculatePricing(currentBooking.vehicle.daily_rate, days, currentBooking.extras || {});
+
+      // Check vehicle availability for new dates
+      await client.query('BEGIN');
+      const { available, reason } = await isVehicleAvailable(
+        client,
+        currentBooking.vehicle_id,
+        newStartDate,
+        newEndDate,
+        bookingId // Exclude current booking from overlap check
+      );
+
+      if (!available) {
+        await client.query('ROLLBACK');
+        throw new AppError(`Vehicle not available: ${reason}`, 400);
+      }
+
+      // Update booking with new dates and pricing
+      const result = await client.query(
+        `UPDATE bookings SET
+          start_date = $1,
+          end_date = $2,
+          total_price = $3,
+          pickup_location_id = COALESCE($4, pickup_location_id),
+          return_location_id = COALESCE($5, return_location_id),
+          pickup_time = COALESCE($6, pickup_time),
+          return_time = COALESCE($7, return_time),
+          special_requests = COALESCE($8, special_requests),
+          updated_at = NOW()
+        WHERE id = $9 AND client_id = $10
+        RETURNING *`,
+        [
+          newStartDate,
+          newEndDate,
+          newPricing.total_price,
+          pickup_location_id,
+          return_location_id,
+          pickup_time,
+          return_time,
+          special_requests,
+          bookingId,
+          req.user.id,
+        ]
+      );
+
+      await client.query('COMMIT');
+
+      // Get updated booking with vehicle
+      const updatedRow = await pool.query(`${BOOKING_SELECT} WHERE b.id = $1`, [bookingId]);
+
+      res.json({
+        booking: formatBooking(updatedRow.rows[0], newPricing),
+        message: 'Booking modified successfully',
+        price_changed: newPricing.total_price !== Number(currentBooking.total_price),
+        previous_price: Number(currentBooking.total_price),
+        new_price: newPricing.total_price,
+      });
+    } else {
+      // No date change, just update other fields
+      const result = await pool.query(
+        `UPDATE bookings SET
+          pickup_location_id = COALESCE($1, pickup_location_id),
+          return_location_id = COALESCE($2, return_location_id),
+          pickup_time = COALESCE($3, pickup_time),
+          return_time = COALESCE($4, return_time),
+          special_requests = COALESCE($5, special_requests),
+          updated_at = NOW()
+        WHERE id = $6 AND client_id = $7
+        RETURNING *`,
+        [
+          pickup_location_id,
+          return_location_id,
+          pickup_time,
+          return_time,
+          special_requests,
+          bookingId,
+          req.user.id,
+        ]
+      );
+
+      const updatedRow = await pool.query(`${BOOKING_SELECT} WHERE b.id = $1`, [bookingId]);
+
+      res.json({
+        booking: formatBooking(updatedRow.rows[0]),
+        message: 'Booking updated successfully',
+      });
+    }
+  } catch (err) {
+    if (client.query) {
+      await client.query('ROLLBACK').catch(() => {});
+    }
+    next(err);
+  } finally {
+    client.release();
+  }
+}

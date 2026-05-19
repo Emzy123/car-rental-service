@@ -45,4 +45,18 @@ export const config = {
       process.env.PAYSTACK_DEV_MODE === 'true' ||
       (!process.env.PAYSTACK_SECRET_KEY && process.env.NODE_ENV !== 'production'),
   },
+  redis: {
+    url: process.env.REDIS_URL,
+    enabled: !!process.env.REDIS_URL,
+    ttl: {
+      vehicles: 300, // 5 minutes
+      dashboard: 60, // 1 minute
+      bookings: 30,  // 30 seconds
+      static: 3600,  // 1 hour
+    },
+  },
+  sentry: {
+    dsn: process.env.SENTRY_DSN,
+    enabled: !!process.env.SENTRY_DSN && process.env.NODE_ENV === 'production',
+  },
 };

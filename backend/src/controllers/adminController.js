@@ -1,4 +1,5 @@
 import { pool } from '../db/pool.js';
+import { Parser } from '@json2csv/plainjs';
 import { AppError } from '../utils/errors.js';
 import {
   getDashboardStats,
@@ -302,6 +303,126 @@ export async function listClients(req, res, next) {
 
     const total = count.rows[0].total;
     res.json({ clients: result.rows, total, pages: Math.ceil(total / limit) });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// CSV Export Functions
+
+export async function exportBookingsCSV(req, res, next) {
+  try {
+    const { status, search, start_date, end_date } = req.query;
+    const params = [];
+    const filters = ['1=1'];
+    let i = 1;
+
+    if (status) {
+      filters.push(`b.status = $${i++}`);
+      params.push(status);
+    }
+    if (search) {
+      filters.push(`(u.full_name ILIKE $${i} OR u.email ILIKE $${i} OR v.make ILIKE $${i})`);
+      params.push(`%${search}%`);
+      i++;
+    }
+    if (start_date) {
+      filters.push(`b.start_date >= $${i++}`);
+      params.push(start_date);
+    }
+    if (end_date) {
+      filters.push(`b.end_date <= $${i++}`);
+      params.push(end_date);
+    }
+
+    const result = await pool.query(
+      `SELECT b.id, b.status, b.start_date, b.end_date, b.total_price,
+              b.pickup_time, b.return_time, b.special_requests, b.created_at,
+              u.full_name AS client_name, u.email AS client_email, u.phone AS client_phone,
+              v.make AS vehicle_make, v.model AS vehicle_model, v.year AS vehicle_year,
+              v.license_plate, v.category AS vehicle_category,
+              COALESCE(l.name, 'Unknown') AS pickup_location
+       FROM bookings b
+       JOIN users u ON u.id = b.client_id
+       JOIN vehicles v ON v.id = b.vehicle_id
+       LEFT JOIN locations l ON l.id = b.pickup_location_id
+       WHERE ${filters.join(' AND ')}
+       ORDER BY b.created_at DESC`,
+      params
+    );
+
+    const fields = [
+      { label: 'Booking ID', value: 'id' },
+      { label: 'Status', value: 'status' },
+      { label: 'Client Name', value: 'client_name' },
+      { label: 'Client Email', value: 'client_email' },
+      { label: 'Client Phone', value: 'client_phone' },
+      { label: 'Vehicle', value: (row) => `${row.vehicle_make} ${row.vehicle_model} (${row.vehicle_year})` },
+      { label: 'License Plate', value: 'license_plate' },
+      { label: 'Category', value: 'vehicle_category' },
+      { label: 'Pickup Location', value: 'pickup_location' },
+      { label: 'Start Date', value: 'start_date' },
+      { label: 'End Date', value: 'end_date' },
+      { label: 'Pickup Time', value: 'pickup_time' },
+      { label: 'Return Time', value: 'return_time' },
+      { label: 'Total Price', value: 'total_price' },
+      { label: 'Special Requests', value: 'special_requests' },
+      { label: 'Created At', value: 'created_at' },
+    ];
+
+    const parser = new Parser({ fields });
+    const csv = parser.parse(result.rows);
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="bookings-${new Date().toISOString().split('T')[0]}.csv"`);
+    res.send(csv);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function exportClientsCSV(req, res, next) {
+  try {
+    const { search } = req.query;
+    const params = ['client'];
+    const filters = [`role = $1`];
+    let i = 2;
+
+    if (search) {
+      filters.push(`(full_name ILIKE $${i} OR email ILIKE $${i})`);
+      params.push(`%${search}%`);
+      i++;
+    }
+
+    const result = await pool.query(
+      `SELECT u.id, u.email, u.full_name, u.phone, u.driver_license_number,
+              u.address, u.created_at, u.is_active,
+              (SELECT COUNT(*) FROM bookings b WHERE b.client_id = u.id) AS total_bookings,
+              (SELECT COALESCE(SUM(total_price), 0) FROM bookings b WHERE b.client_id = u.id) AS total_spent
+       FROM users u WHERE ${filters.join(' AND ')}
+       ORDER BY u.created_at DESC`,
+      params
+    );
+
+    const fields = [
+      { label: 'Client ID', value: 'id' },
+      { label: 'Full Name', value: 'full_name' },
+      { label: 'Email', value: 'email' },
+      { label: 'Phone', value: 'phone' },
+      { label: 'Driver License', value: 'driver_license_number' },
+      { label: 'Address', value: 'address' },
+      { label: 'Status', value: (row) => row.is_active ? 'Active' : 'Suspended' },
+      { label: 'Total Bookings', value: 'total_bookings' },
+      { label: 'Total Spent', value: 'total_spent' },
+      { label: 'Joined Date', value: 'created_at' },
+    ];
+
+    const parser = new Parser({ fields });
+    const csv = parser.parse(result.rows);
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="clients-${new Date().toISOString().split('T')[0]}.csv"`);
+    res.send(csv);
   } catch (err) {
     next(err);
   }

@@ -30,7 +30,7 @@ export function Header({ variant = 'default' }) {
       className={cn(
         'sticky top-0 z-40 w-full transition-all duration-300',
         transparent
-          ? 'border-transparent bg-transparent text-white'
+          ? 'border-transparent bg-gradient-to-b from-black/40 to-transparent text-white backdrop-blur-sm'
           : 'border-b border-gray-200/80 bg-white/95 text-primary-500 shadow-sm backdrop-blur-md'
       )}
     >
@@ -45,10 +45,10 @@ export function Header({ variant = 'default' }) {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6">
         <Link
           to="/"
-          className={cn('font-display text-xl font-bold tracking-tight', transparent ? 'text-white' : 'text-primary-500')}
+          className={cn('font-display text-xl font-bold tracking-tight drop-shadow-md', transparent ? 'text-white' : 'text-primary-500')}
           aria-label="DriveRent — home"
         >
-          Drive<span className={cn(transparent ? 'text-secondary-400' : 'text-secondary-500')}>Rent</span>
+          Drive<span className={cn(transparent ? 'text-secondary-400 drop-shadow-md' : 'text-secondary-500')}>Rent</span>
         </Link>
 
         {/* Desktop nav */}
@@ -60,9 +60,9 @@ export function Header({ variant = 'default' }) {
               end={l.end}
               className={({ isActive }) =>
                 cn(
-                  'text-sm font-medium transition hover:text-secondary-500',
-                  transparent ? 'text-white/90' : 'text-primary-600',
-                  isActive && !transparent && 'text-secondary-500'
+                  'text-sm font-medium transition hover:text-secondary-400',
+                  transparent ? 'text-white drop-shadow-md' : 'text-primary-600',
+                  isActive && (transparent ? 'text-secondary-300' : 'text-secondary-500')
                 )
               }
             >
@@ -78,19 +78,19 @@ export function Header({ variant = 'default' }) {
               <Link
                 to={isAdmin ? '/admin' : '/dashboard'}
                 className={cn(
-                  'text-sm font-medium transition hover:text-secondary-500',
-                  transparent ? 'text-white' : 'text-primary-600'
+                  'text-sm font-medium transition hover:text-secondary-400',
+                  transparent ? 'text-white drop-shadow-md' : 'text-primary-600'
                 )}
               >
                 {user?.full_name?.split(' ')[0] || 'Dashboard'}
               </Link>
-              <Button variant="ghost" size="sm" onClick={handleLogout} className={transparent ? 'text-white hover:bg-white/10' : ''}>
+              <Button variant="ghost" size="sm" onClick={handleLogout} className={transparent ? 'text-white drop-shadow-md hover:bg-white/20' : 'text-primary-600'}>
                 Logout
               </Button>
             </>
           ) : (
             <>
-              <Button variant="ghost" size="sm" asChild className={transparent ? 'text-white hover:bg-white/10' : ''}>
+              <Button variant="ghost" size="sm" asChild className={transparent ? 'text-white drop-shadow-md hover:bg-white/20' : ''}>
                 <Link to="/login">Sign in</Link>
               </Button>
               <Button variant="primary" size="sm" asChild>
@@ -103,7 +103,7 @@ export function Header({ variant = 'default' }) {
         {/* Mobile hamburger */}
         <button
           type="button"
-          className={cn('rounded-lg p-2 md:hidden', transparent ? 'text-white' : 'text-primary-500')}
+          className={cn('rounded-lg p-2 md:hidden', transparent ? 'text-white drop-shadow-md hover:bg-white/20' : 'text-primary-500 hover:bg-gray-100')}
           onClick={() => setMobileOpen(true)}
           aria-label="Open navigation menu"
           aria-expanded={mobileOpen}

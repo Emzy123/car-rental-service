@@ -29,11 +29,11 @@ export function SearchWidget({ compact = false }) {
       className={
         compact
           ? 'grid gap-3 sm:grid-cols-2 lg:grid-cols-5'
-          : 'rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-md sm:p-6'
+          : 'grid gap-4 rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-md sm:grid-cols-2 sm:p-6 lg:grid-cols-5'
       }
     >
       <label className="text-left text-sm">
-        <span className="mb-1 flex items-center gap-1 font-medium text-white/90">
+        <span className="mb-1 flex items-center gap-1 font-medium text-white drop-shadow-sm">
           <MapPin className="h-4 w-4" /> Pickup location
         </span>
         <select
@@ -44,7 +44,7 @@ export function SearchWidget({ compact = false }) {
               returnLocationId: store.returnLocationId || Number(e.target.value) || null,
             })
           }
-          className="w-full rounded-lg border border-white/30 bg-white/95 px-3 py-2.5 text-primary-500"
+          className="w-full min-h-[44px] rounded-lg border border-white/30 bg-white/95 px-3 py-2.5 text-primary-500"
         >
           <option value="">Any location</option>
           {locations.map((l) => (
@@ -55,7 +55,7 @@ export function SearchWidget({ compact = false }) {
         </select>
       </label>
       <label className="text-left text-sm">
-        <span className="mb-1 flex items-center gap-1 font-medium text-white/90">
+        <span className="mb-1 flex items-center gap-1 font-medium text-white drop-shadow-sm">
           <Calendar className="h-4 w-4" /> Pickup date
         </span>
         <input
@@ -64,11 +64,11 @@ export function SearchWidget({ compact = false }) {
           min={defaults.start}
           value={store.startDate}
           onChange={(e) => store.setSearch({ startDate: e.target.value })}
-          className="w-full rounded-lg border border-white/30 bg-white/95 px-3 py-2.5 text-primary-500"
+          className="w-full min-h-[44px] rounded-lg border border-white/30 bg-white/95 px-3 py-2.5 text-primary-500"
         />
       </label>
       <label className="text-left text-sm">
-        <span className="mb-1 flex items-center gap-1 font-medium text-white/90">
+        <span className="mb-1 flex items-center gap-1 font-medium text-white drop-shadow-sm">
           <Calendar className="h-4 w-4" /> Return date
         </span>
         <input
@@ -77,15 +77,15 @@ export function SearchWidget({ compact = false }) {
           min={store.startDate}
           value={store.endDate}
           onChange={(e) => store.setSearch({ endDate: e.target.value })}
-          className="w-full rounded-lg border border-white/30 bg-white/95 px-3 py-2.5 text-primary-500"
+          className="w-full min-h-[44px] rounded-lg border border-white/30 bg-white/95 px-3 py-2.5 text-primary-500"
         />
       </label>
       <label className="text-left text-sm sm:col-span-2 lg:col-span-1">
-        <span className="mb-1 block font-medium text-white/90">Category</span>
+        <span className="mb-1 block font-medium text-white drop-shadow-sm">Category</span>
         <select
           value={store.category}
           onChange={(e) => store.setSearch({ category: e.target.value })}
-          className="w-full rounded-lg border border-white/30 bg-white/95 px-3 py-2.5 text-primary-500"
+          className="w-full min-h-[44px] rounded-lg border border-white/30 bg-white/95 px-3 py-2.5 text-primary-500"
         >
           <option value="">All categories</option>
           {['luxury', 'suv', 'sports', 'electric', 'economy', 'van'].map((c) => (
@@ -96,7 +96,7 @@ export function SearchWidget({ compact = false }) {
         </select>
       </label>
       <div className="flex items-end sm:col-span-2 lg:col-span-1">
-        <Button type="submit" variant="secondary" size="lg" fullWidth>
+        <Button type="submit" variant="secondary" size="lg" fullWidth className="min-h-[48px]">
           Find Cars
         </Button>
       </div>

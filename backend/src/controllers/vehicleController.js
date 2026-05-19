@@ -2,6 +2,8 @@ import { pool } from '../db/pool.js';
 import { AppError } from '../utils/errors.js';
 import { getAvailableVehicles } from '../services/availability.js';
 import { validateBookingDates } from '../utils/booking.js';
+import { getOrSet, generateKey } from '../services/cache.js';
+import { config } from '../config/index.js';
 
 export async function listVehicles(req, res, next) {
   try {
@@ -29,7 +31,16 @@ export async function listVehicles(req, res, next) {
 
     validateBookingDates(start_date, end_date);
 
-    const result = await getAvailableVehicles({
+    // Generate cache key from search parameters
+    const cacheKey = generateKey('vehicles', {
+      start_date, end_date, fuel_type, transmission, category,
+      min_price, max_price, seats, features, sort, page, limit,
+    });
+
+    // Use cache with configured TTL
+    const result = await getOrSet(
+      cacheKey,
+      () => getAvailableVehicles({
       startDate: start_date,
       endDate: end_date,
       fuelType: fuel_type,
@@ -42,7 +53,9 @@ export async function listVehicles(req, res, next) {
       sort: sort || 'recommended',
       page: parseInt(page || '1', 10),
       limit: Math.min(parseInt(limit || '12', 10), 50),
-    });
+      }),
+      config.redis.ttl.vehicles
+    );
 
     res.json(result);
   } catch (err) {

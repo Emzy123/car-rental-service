@@ -38,7 +38,7 @@ export async function register(req, res, next) {
     const result = await pool.query(
       `INSERT INTO users (email, password_hash, full_name, phone, driver_license_number, address, role)
        VALUES ($1, $2, $3, $4, $5, $6, 'client')
-       RETURNING id, email, full_name, phone, driver_license_number, address, role, created_at, is_active`,
+       RETURNING id, email, full_name, phone, driver_license_number, address, avatar_url, role, created_at, is_active`,
       [
         email.toLowerCase().trim(),
         password_hash,
@@ -73,7 +73,7 @@ export async function login(req, res, next) {
     }
 
     const result = await pool.query(
-      `SELECT id, email, password_hash, full_name, phone, driver_license_number, address, role, created_at, is_active
+      `SELECT id, email, password_hash, full_name, phone, driver_license_number, address, avatar_url, role, created_at, is_active
        FROM users WHERE email = $1`,
       [email.toLowerCase().trim()]
     );
@@ -153,11 +153,36 @@ export async function updateProfile(req, res, next) {
     const result = await pool.query(
       `UPDATE users SET ${fields.join(', ')}
        WHERE id = $${i}
-       RETURNING id, email, full_name, phone, driver_license_number, address, date_of_birth, role, created_at, is_active`,
+       RETURNING id, email, full_name, phone, driver_license_number, address, avatar_url, date_of_birth, role, created_at, is_active`,
       values
     );
 
     res.json({ user: result.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function uploadAvatar(req, res, next) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: true, message: 'No file uploaded' });
+    }
+
+    // Generate public URL for the uploaded file
+    const avatarUrl = `${req.protocol}://${req.get('host')}/uploads/avatars/${req.file.filename}`;
+
+    // Update user's avatar_url in database
+    const result = await pool.query(
+      `UPDATE users SET avatar_url = $1 WHERE id = $2
+       RETURNING id, email, full_name, phone, driver_license_number, address, avatar_url, date_of_birth, role, created_at, is_active`,
+      [avatarUrl, req.user.id]
+    );
+
+    res.json({
+      user: result.rows[0],
+      message: 'Avatar uploaded successfully',
+    });
   } catch (err) {
     next(err);
   }

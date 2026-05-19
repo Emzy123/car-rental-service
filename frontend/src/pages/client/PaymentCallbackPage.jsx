@@ -20,6 +20,11 @@ export default function PaymentCallbackPage() {
       setError('Missing payment reference.');
       return;
     }
+    if (!bookingId) {
+      setStatus('error');
+      setError('Missing booking ID.');
+      return;
+    }
     (async () => {
       try {
         await apiRequest('/payments/verify', {
