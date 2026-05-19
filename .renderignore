@@ -1,0 +1,18 @@
+# Files and directories to ignore during Render deployment
+.git
+.github
+.vscode
+*.md
+docs
+frontend/node_modules
+backend/node_modules
+frontend/dist
+uploads
+*.log
+.env
+.env.local
+.env.*.local
+coverage
+.nyc_output
+.DS_Store
+Thumbs.db

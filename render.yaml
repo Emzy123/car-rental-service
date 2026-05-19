@@ -1,0 +1,178 @@
+# Render Blueprint for DriveRent Car Rental Service
+# This file defines infrastructure as code for Render deployment
+
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: rental-service-db
+    runtime: docker
+    repo: https://github.com/render-examples/postgres
+    envVars:
+      - key: POSTGRES_USER
+        generateValue: true
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+      - key: POSTGRES_DB
+        value: rental_service
+    disk:
+      name: data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 10
+
+  # Redis Cache (Optional but recommended)
+  - type: pserv
+    name: rental-service-redis
+    runtime: docker
+    repo: https://github.com/render-examples/redis
+    disk:
+      name: redis-data
+      mountPath: /data
+      sizeGB: 1
+
+  # Backend API Service
+  - type: web
+    name: rental-service-api
+    runtime: node
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: rental-service-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: pserv
+          name: rental-service-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PAYSTACK_SECRET_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: PAYSTACK_DEV_MODE
+        value: false
+      - key: ADMIN_EMAIL
+        value: admin@driverent.com
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: ADMIN_NAME
+        value: System Admin
+      - key: CLIENT_URL
+        fromService:
+          type: web
+          name: rental-service-frontend
+          property: url
+      - key: SENTRY_DSN
+        sync: false  # Optional: Set manually for error tracking
+      - key: UPLOAD_DIR
+        value: /tmp/uploads
+    disk:
+      name: uploads
+      mountPath: /tmp/uploads
+      sizeGB: 1
+    autoDeploy: true
+    healthCheckPath: /api/health
+
+  # Frontend Static Site
+  - type: static
+    name: rental-service-frontend
+    runtime: node
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: rental-service-api
+          property: url
+      - key: VITE_PAYSTACK_PUBLIC_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: VITE_APP_VERSION
+        value: "1.0.0"
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    autoDeploy: true
+
+  # Alternative: Combined Backend + Frontend (simpler but less optimal)
+  # Uncomment this section and comment out the separate services above
+  # if you want to serve frontend from the backend
+  # 
+  # - type: web
+  #   name: rental-service
+  #   runtime: node
+  #   buildCommand: |
+  #     cd backend && npm install
+  #     cd ../frontend && npm install && npm run build
+  #     mkdir -p ../backend/dist
+  #     cp -r ../frontend/dist/* ../backend/dist/
+  #   startCommand: cd backend && npm start
+  #   envVars:
+  #     - key: NODE_ENV
+  #       value: production
+  #     - key: PORT
+  #       value: 10000
+  #     - key: DATABASE_URL
+  #       fromDatabase:
+  #         name: rental-service-db
+  #         property: connectionString
+  #     - key: REDIS_URL
+  #       fromService:
+  #         type: pserv
+  #         name: rental-service-redis
+  #         property: connectionString
+  #     - key: JWT_SECRET
+  #       generateValue: true
+  #     - key: PAYSTACK_SECRET_KEY
+  #       sync: false
+  #     - key: PAYSTACK_PUBLIC_KEY
+  #       sync: false
+  #     - key: PAYSTACK_DEV_MODE
+  #       value: false
+  #     - key: ADMIN_EMAIL
+  #       value: admin@driverent.com
+  #     - key: ADMIN_PASSWORD
+  #       generateValue: true
+  #     - key: ADMIN_NAME
+  #       value: System Admin
+  #     - key: VITE_PAYSTACK_PUBLIC_KEY
+  #       sync: false
+  #   disk:
+  #     name: uploads
+  #     mountPath: /tmp/uploads
+  #     sizeGB: 1
+  #   autoDeploy: true
+
+# Environment group for shared settings
+envVarGroups:
+  - name: rental-service-common
+    envVars:
+      - key: TZ
+        value: UTC
+
+# Blueprint metadata
+description: DriveRent Premium Car Rental Service - Full stack application with PostgreSQL, Node.js, React, and Paystack payments
+version: "1.0"
+
+# Pre-deploy script for database migrations
+preDeployHook:
+  command: cd backend && npm install && npm run db:migrate
+  from:
+    type: web
+    name: rental-service-api

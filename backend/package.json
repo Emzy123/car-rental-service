@@ -5,12 +5,14 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "npm run db:migrate && node src/index.js",
     "dev": "node --watch src/index.js",
+    "build": "echo 'Build complete'",
     "db:migrate": "node src/db/migrate.js",
     "db:seed-admin": "node scripts/seed-admin.js",
     "db:seed-vehicles": "node scripts/seed-vehicles.js",
     "db:seed-locations": "node scripts/seed-locations.js",
+    "postinstall": "npm run db:migrate",
     "test": "vitest",
     "test:run": "vitest run"
   },
