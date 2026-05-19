@@ -1,0 +1,23 @@
+{
+  "name": "rental-service-backend",
+  "version": "1.0.0",
+  "description": "Car rental API",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "db:migrate": "node src/db/migrate.js",
+    "db:seed-admin": "node scripts/seed-admin.js",
+    "db:seed-vehicles": "node scripts/seed-vehicles.js",
+    "db:seed-locations": "node scripts/seed-locations.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.3"
+  }
+}
