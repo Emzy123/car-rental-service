@@ -2,7 +2,7 @@ import { useState, lazy, Suspense } from 'react';
 import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Car, CalendarCheck, Users,
-  LogOut, Menu, ChevronRight,
+  LogOut, Menu, MapPin, BarChart2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Spinner } from '../components/ui/Spinner.jsx';
@@ -12,12 +12,16 @@ const AdminOverview = lazy(() => import('./admin/AdminOverview.jsx'));
 const AdminFleet = lazy(() => import('./admin/AdminFleet.jsx'));
 const AdminBookings = lazy(() => import('./admin/AdminBookings.jsx'));
 const AdminClients = lazy(() => import('./admin/AdminClients.jsx'));
+const AdminLocations = lazy(() => import('./admin/AdminLocations.jsx'));
+const AdminReports = lazy(() => import('./admin/AdminReports.jsx'));
 
 const navItems = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/admin/fleet', label: 'Fleet', icon: Car, end: false },
   { to: '/admin/bookings', label: 'Bookings', icon: CalendarCheck, end: false },
   { to: '/admin/clients', label: 'Clients', icon: Users, end: false },
+  { to: '/admin/locations', label: 'Locations', icon: MapPin, end: false },
+  { to: '/admin/reports', label: 'Reports', icon: BarChart2, end: false },
 ];
 
 function AdminSidebar({ user, onClose }) {
@@ -105,7 +109,9 @@ export default function AdminDashboard() {
             aria-label="Open menu"
             className="text-primary-500"
           >
-            <Menu className="h-6 w-6" />
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
           </button>
           <span className="font-display font-bold text-primary-500">
             Drive<span className="text-secondary-500">Rent</span> Admin
@@ -120,6 +126,8 @@ export default function AdminDashboard() {
               <Route path="fleet/*" element={<AdminFleet />} />
               <Route path="bookings" element={<AdminBookings />} />
               <Route path="clients" element={<AdminClients />} />
+              <Route path="locations" element={<AdminLocations />} />
+              <Route path="reports" element={<AdminReports />} />
               <Route path="*" element={<AdminOverview />} />
             </Routes>
           </Suspense>

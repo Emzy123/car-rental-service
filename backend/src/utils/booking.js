@@ -1,7 +1,16 @@
 import { config } from '../config/index.js';
 
 export function parseDateOnly(value) {
-  const d = new Date(`${value}T00:00:00`);
+  if (!value) return null;
+  let dateStr;
+  if (value instanceof Date) {
+    dateStr = value.toISOString().split('T')[0];
+  } else if (typeof value === 'string') {
+    dateStr = value.split('T')[0];
+  } else {
+    return null;
+  }
+  const d = new Date(`${dateStr}T00:00:00Z`);
   if (Number.isNaN(d.getTime())) return null;
   return d;
 }

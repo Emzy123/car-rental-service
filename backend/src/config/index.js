@@ -14,11 +14,18 @@ export const config = {
   port: parseInt(process.env.PORT || '5000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
-  databaseUrl: process.env.DATABASE_URL,
+  databaseUrl:
+    process.env.NODE_ENV === 'test' || process.env.VITEST
+      ? process.env.DATABASE_URL?.replace(/\/[^/]+$/, '/rental_service_test')
+      : process.env.DATABASE_URL,
   jwtSecret: process.env.JWT_SECRET,
   jwtExpiresIn: '7d',
   bcryptRounds: 10,
-  emailServiceApiKey: process.env.EMAIL_SERVICE_API_KEY,
+  gmail: {
+    user: process.env.GMAIL_USER,
+    appPassword: process.env.GMAIL_APP_PASSWORD,
+    fromName: process.env.EMAIL_FROM_NAME || 'DriveRent',
+  },
   currencyCode: process.env.CURRENCY_CODE || 'NGN',
   pricing: {
     taxRatePercent: parseFloat(process.env.TAX_RATE_PERCENT || '18'),

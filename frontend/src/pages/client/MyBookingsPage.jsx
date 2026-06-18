@@ -11,6 +11,8 @@ import { Badge } from '../../components/ui/Badge.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Dialog, DialogContent } from '../../components/ui/Dialog.jsx';
+import { Sheet, SheetContent } from '../../components/ui/Sheet.jsx';
+import BookingDetailDrawer from '../../components/BookingDetailDrawer.jsx';
 
 const STATUS_VARIANT = {
   pending: 'warning',
@@ -20,7 +22,7 @@ const STATUS_VARIANT = {
   cancelled: 'error',
 };
 
-function BookingCard({ booking, onCancelClick, index }) {
+function BookingCard({ booking, onCancelClick, onCardClick, index }) {
   const canCancel = ['pending', 'confirmed'].includes(booking.status);
   const needsPay = booking.status === 'pending';
   const photo = booking.vehicle?.photo_urls?.[0];
@@ -30,7 +32,8 @@ function BookingCard({ booking, onCancelClick, index }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.3 }}
-      className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+      className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm cursor-pointer hover:border-secondary-300 hover:shadow-md transition-all"
+      onClick={() => onCardClick(booking)}
     >
       <div className="flex flex-col sm:flex-row">
         {photo && (
@@ -66,7 +69,12 @@ function BookingCard({ booking, onCancelClick, index }) {
             </p>
             <div className="flex flex-wrap gap-2">
               {needsPay && (
-                <Button asChild size="sm" className="gap-1.5">
+                <Button
+                  asChild
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Link to={`/dashboard/bookings/${booking.id}/pay`}>
                     <CreditCard className="h-3.5 w-3.5" /> Pay deposit
                   </Link>
@@ -76,7 +84,10 @@ function BookingCard({ booking, onCancelClick, index }) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onCancelClick(booking)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCancelClick(booking);
+                  }}
                   className="border-red-200 text-error hover:bg-red-50"
                 >
                   Cancel
@@ -90,7 +101,7 @@ function BookingCard({ booking, onCancelClick, index }) {
   );
 }
 
-function Section({ title, bookings, onCancelClick, emptyText }) {
+function Section({ title, bookings, onCancelClick, onCardClick, emptyText }) {
   return (
     <section>
       <h2 className="font-display text-lg font-semibold text-primary-500">{title}</h2>
@@ -99,7 +110,13 @@ function Section({ title, bookings, onCancelClick, emptyText }) {
       ) : (
         <ul className="mt-4 space-y-4">
           {bookings.map((b, i) => (
-            <BookingCard key={b.id} booking={b} onCancelClick={onCancelClick} index={i} />
+            <BookingCard
+              key={b.id}
+              booking={b}
+              onCancelClick={onCancelClick}
+              onCardClick={onCardClick}
+              index={i}
+            />
           ))}
         </ul>
       )}
@@ -110,6 +127,7 @@ function Section({ title, bookings, onCancelClick, emptyText }) {
 export default function MyBookingsPage() {
   const queryClient = useQueryClient();
   const [cancelTarget, setCancelTarget] = useState(null);
+  const [selectedBookingId, setSelectedBookingId] = useState(null);
   const [cancelling, setCancelling] = useState(false);
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -165,6 +183,7 @@ export default function MyBookingsPage() {
         title="Upcoming"
         bookings={upcoming}
         onCancelClick={setCancelTarget}
+        onCardClick={(b) => setSelectedBookingId(b.id)}
         emptyText="No upcoming reservations. Ready to book your next drive?"
       />
 
@@ -172,9 +191,11 @@ export default function MyBookingsPage() {
         title="Past"
         bookings={past}
         onCancelClick={setCancelTarget}
+        onCardClick={(b) => setSelectedBookingId(b.id)}
         emptyText="No past reservations yet."
       />
 
+      {/* Cancel Booking Confirmation Dialog */}
       <Dialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
         <DialogContent title="Cancel booking">
           <p className="mt-1 text-sm text-gray-600">
@@ -194,6 +215,19 @@ export default function MyBookingsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Booking Details / Modifications Drawer */}
+      <Sheet open={!!selectedBookingId} onOpenChange={(o) => !o && setSelectedBookingId(null)}>
+        <SheetContent side="right" title="Reservation Details" className="w-[500px] sm:w-[600px] max-w-[95vw]">
+          {selectedBookingId && (
+            <BookingDetailDrawer
+              bookingId={selectedBookingId}
+              onClose={() => setSelectedBookingId(null)}
+              onCancelTrigger={setCancelTarget}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

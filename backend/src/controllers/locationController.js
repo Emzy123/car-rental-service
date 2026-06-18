@@ -4,7 +4,7 @@ export async function listLocations(req, res, next) {
   try {
     const { type } = req.query;
     const params = [];
-    let sql = `SELECT id, name, city, type FROM locations WHERE is_active = true`;
+    let sql = `SELECT id, name, city, type, is_active FROM locations WHERE is_active = true`;
 
     if (type) {
       params.push(type);

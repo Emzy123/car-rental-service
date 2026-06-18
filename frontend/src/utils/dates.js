@@ -10,14 +10,29 @@ export function defaultDates() {
 }
 
 export function rentalDays(startDate, endDate) {
-  const start = new Date(`${startDate}T00:00:00`);
-  const end = new Date(`${endDate}T00:00:00`);
+  if (!startDate || !endDate) return 0;
+  const startStr = typeof startDate === 'string' ? startDate.split('T')[0] : new Date(startDate).toISOString().split('T')[0];
+  const endStr = typeof endDate === 'string' ? endDate.split('T')[0] : new Date(endDate).toISOString().split('T')[0];
+  
+  const start = new Date(`${startStr}T00:00:00`);
+  const end = new Date(`${endStr}T00:00:00`);
   return Math.ceil((end - start) / (1000 * 60 * 60 * 24));
 }
 
 export function formatDate(d) {
   if (!d) return '';
-  return new Date(`${d}T00:00:00`).toLocaleDateString(undefined, {
+  const dateStr = typeof d === 'string' ? d.split('T')[0] : new Date(d).toISOString().split('T')[0];
+  const dateObj = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(dateObj.getTime())) {
+    const fallback = new Date(d);
+    if (Number.isNaN(fallback.getTime())) return 'Invalid Date';
+    return fallback.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+  return dateObj.toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

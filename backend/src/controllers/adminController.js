@@ -427,3 +427,203 @@ export async function exportClientsCSV(req, res, next) {
     next(err);
   }
 }
+
+// ─── Locations Admin ────────────────────────────────────────────────────────
+
+export async function listAdminLocations(req, res, next) {
+  try {
+    const result = await pool.query(
+      `SELECT id, name, city, type, is_active,
+              (SELECT COUNT(*)::int FROM bookings b WHERE b.pickup_location_id = l.id) AS booking_count
+       FROM locations l
+       ORDER BY city ASC, name ASC`
+    );
+    res.json({ locations: result.rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function createLocation(req, res, next) {
+  try {
+    const { name, city, type } = req.body;
+    if (!name || !city || !type) {
+      throw new AppError('name, city, and type are required', 400);
+    }
+    const result = await pool.query(
+      `INSERT INTO locations (name, city, type, is_active)
+       VALUES ($1, $2, $3, true) RETURNING *`,
+      [name.trim(), city.trim(), type]
+    );
+    res.status(201).json({ location: result.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateLocation(req, res, next) {
+  try {
+    const { name, city, type } = req.body;
+    const fields = [];
+    const values = [];
+    let i = 1;
+    if (name !== undefined) { fields.push(`name = $${i++}`); values.push(name.trim()); }
+    if (city !== undefined) { fields.push(`city = $${i++}`); values.push(city.trim()); }
+    if (type !== undefined) { fields.push(`type = $${i++}`); values.push(type); }
+    if (fields.length === 0) throw new AppError('No fields to update', 400);
+    values.push(req.params.id);
+    const result = await pool.query(
+      `UPDATE locations SET ${fields.join(', ')} WHERE id = $${i} RETURNING *`,
+      values
+    );
+    if (result.rows.length === 0) throw new AppError('Location not found', 404);
+    res.json({ location: result.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function toggleLocation(req, res, next) {
+  try {
+    const result = await pool.query(
+      `UPDATE locations SET is_active = NOT is_active WHERE id = $1 RETURNING *`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) throw new AppError('Location not found', 404);
+    res.json({ location: result.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ─── Client Detail & Status ─────────────────────────────────────────────────
+
+export async function getClientDetail(req, res, next) {
+  try {
+    const { id } = req.params;
+    const clientResult = await pool.query(
+      `SELECT id, email, full_name, phone, driver_license_number, address,
+              created_at, is_active,
+              (SELECT COUNT(*)::int FROM bookings b WHERE b.client_id = u.id) AS booking_count,
+              (SELECT COALESCE(SUM(total_price), 0)::float FROM bookings b WHERE b.client_id = u.id) AS total_spent
+       FROM users u WHERE id = $1 AND role = 'client'`,
+      [id]
+    );
+    if (clientResult.rows.length === 0) throw new AppError('Client not found', 404);
+
+    const bookingsResult = await pool.query(
+      `SELECT b.id, b.status, b.start_date, b.end_date, b.total_price, b.created_at,
+              v.make AS vehicle_make, v.model AS vehicle_model
+       FROM bookings b
+       JOIN vehicles v ON v.id = b.vehicle_id
+       WHERE b.client_id = $1
+       ORDER BY b.created_at DESC
+       LIMIT 10`,
+      [id]
+    );
+
+    res.json({ client: clientResult.rows[0], bookings: bookingsResult.rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function toggleClientStatus(req, res, next) {
+  try {
+    const result = await pool.query(
+      `UPDATE users SET is_active = NOT is_active WHERE id = $1 AND role = 'client' RETURNING id, is_active, full_name`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) throw new AppError('Client not found', 404);
+    res.json({ client: result.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ─── Booking Detail ─────────────────────────────────────────────────────────
+
+export async function getBookingDetail(req, res, next) {
+  try {
+    const result = await pool.query(
+      `SELECT b.*,
+              u.full_name AS client_name, u.email AS client_email, u.phone AS client_phone,
+              v.make AS vehicle_make, v.model AS vehicle_model, v.year AS vehicle_year,
+              v.license_plate, v.category AS vehicle_category, v.daily_rate,
+              pl.name AS pickup_location_name,
+              rl.name AS return_location_name
+       FROM bookings b
+       JOIN users u ON u.id = b.client_id
+       JOIN vehicles v ON v.id = b.vehicle_id
+       LEFT JOIN locations pl ON pl.id = b.pickup_location_id
+       LEFT JOIN locations rl ON rl.id = b.return_location_id
+       WHERE b.id = $1`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) throw new AppError('Booking not found', 404);
+
+    const paymentsResult = await pool.query(
+      `SELECT id, type, amount, status, created_at FROM payments WHERE booking_id = $1 ORDER BY created_at ASC`,
+      [req.params.id]
+    );
+
+    res.json({ booking: result.rows[0], payments: paymentsResult.rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ─── Reports ────────────────────────────────────────────────────────────────
+
+export async function getReports(req, res, next) {
+  try {
+    const [dailyRevenue, statusBreakdown, topClients, monthlyBookings] = await Promise.all([
+      // Daily revenue for last 30 days
+      pool.query(
+        `SELECT to_char(date_trunc('day', created_at), 'DD Mon') AS day,
+                COALESCE(SUM(amount), 0)::float AS revenue,
+                COUNT(*)::int AS transactions
+         FROM payments
+         WHERE status = 'completed'
+           AND created_at >= NOW() - interval '30 days'
+         GROUP BY date_trunc('day', created_at)
+         ORDER BY date_trunc('day', created_at)`
+      ),
+      // Booking status breakdown
+      pool.query(
+        `SELECT status, COUNT(*)::int AS count FROM bookings GROUP BY status ORDER BY count DESC`
+      ),
+      // Top 10 clients by total spend
+      pool.query(
+        `SELECT u.id, u.full_name, u.email,
+                COUNT(b.id)::int AS booking_count,
+                COALESCE(SUM(b.total_price), 0)::float AS total_spent
+         FROM users u
+         JOIN bookings b ON b.client_id = u.id
+         WHERE u.role = 'client'
+         GROUP BY u.id, u.full_name, u.email
+         ORDER BY total_spent DESC
+         LIMIT 10`
+      ),
+      // Monthly bookings count for last 12 months
+      pool.query(
+        `SELECT to_char(date_trunc('month', created_at), 'Mon YY') AS month,
+                COUNT(*)::int AS bookings,
+                COALESCE(SUM(total_price), 0)::float AS revenue
+         FROM bookings
+         WHERE created_at >= date_trunc('month', NOW()) - interval '11 months'
+         GROUP BY date_trunc('month', created_at)
+         ORDER BY date_trunc('month', created_at)`
+      ),
+    ]);
+
+    res.json({
+      daily_revenue: dailyRevenue.rows,
+      status_breakdown: statusBreakdown.rows,
+      top_clients: topClients.rows,
+      monthly_bookings: monthlyBookings.rows,
+    });
+  } catch (err) {
+    next(err);
+  }
+}

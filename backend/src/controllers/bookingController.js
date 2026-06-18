@@ -15,6 +15,8 @@ import { config } from '../config/index.js';
 
 const BOOKING_SELECT = `
   SELECT b.*,
+    pl.name AS pickup_location_name,
+    rl.name AS return_location_name,
     json_build_object(
       'id', v.id, 'make', v.make, 'model', v.model, 'year', v.year,
       'license_plate', v.license_plate, 'fuel_type', v.fuel_type,
@@ -23,9 +25,12 @@ const BOOKING_SELECT = `
     ) AS vehicle
   FROM bookings b
   JOIN vehicles v ON v.id = b.vehicle_id
+  LEFT JOIN locations pl ON pl.id = b.pickup_location_id
+  LEFT JOIN locations rl ON rl.id = b.return_location_id
 `;
 
 function formatBooking(row, pricing = null) {
+  if (!row) return null;
   const { vehicle, ...booking } = row;
   return {
     ...booking,
@@ -33,6 +38,8 @@ function formatBooking(row, pricing = null) {
     extras_total: Number(booking.extras_total || 0),
     damage_charge: Number(booking.damage_charge),
     extras: booking.extras || {},
+    pickup_location: row.pickup_location_name || null,
+    return_location: row.return_location_name || null,
     vehicle,
     pricing,
   };

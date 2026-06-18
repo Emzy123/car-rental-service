@@ -1,9 +1,13 @@
 // Auth endpoint tests
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { pool } from '../src/db/pool.js';
-import { cleanupTestData, createTestUser, generateAuthToken } from './setup.js';
+import { cleanupTestData, createTestUser, generateAuthToken, setupTestDB } from './setup.js';
 
 describe('Auth Endpoints', () => {
+  beforeAll(async () => {
+    await setupTestDB();
+  });
+
   beforeEach(async () => {
     await cleanupTestData();
   });

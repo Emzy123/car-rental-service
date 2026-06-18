@@ -21,6 +21,19 @@ export async function setupTestDB() {
   }
   
   await adminPool.end();
+
+  // Run migrations on test database
+  const { execSync } = await import('child_process');
+  try {
+    execSync('npm run db:migrate', {
+      env: {
+        ...process.env,
+        DATABASE_URL: config.databaseUrl,
+      },
+    });
+  } catch (err) {
+    console.error('Migration failed in setupTestDB:', err.message);
+  }
 }
 
 // Clean up test data
