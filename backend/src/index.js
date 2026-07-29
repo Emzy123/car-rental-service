@@ -97,8 +97,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const uploadsRoot = process.env.UPLOAD_DIR
   ? process.env.UPLOAD_DIR
+  : process.env.VERCEL
+  ? join('/tmp', 'uploads')
   : join(__dirname, '..', '..', 'uploads');
 app.use('/uploads', express.static(uploadsRoot));
+
 
 app.use(express.json());
 

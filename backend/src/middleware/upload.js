@@ -8,13 +8,20 @@ import { AppError } from '../utils/errors.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Resolve upload directory: prefer UPLOAD_DIR env var, fall back to repo-relative path
+// Resolve upload directory: prefer UPLOAD_DIR env var, fall back to /tmp on Vercel, or repo-relative path
 const UPLOAD_DIR = process.env.UPLOAD_DIR
   ? path.join(process.env.UPLOAD_DIR, 'avatars')
+  : process.env.VERCEL
+  ? path.join('/tmp', 'uploads', 'avatars')
   : path.resolve(__dirname, '..', '..', '..', 'uploads', 'avatars');
 
-// Ensure the directory exists at startup
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+// Ensure the directory exists at startup (safely wrapped for serverless read-only filesystems)
+try {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+} catch (e) {
+  console.warn('[upload] Could not create upload directory:', e.message);
+}
+
 
 // Configure storage
 const storage = multer.diskStorage({
