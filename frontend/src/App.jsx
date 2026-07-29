@@ -14,6 +14,7 @@ const SupportPage = lazy(() => import('./pages/SupportPage.jsx'));
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard.jsx'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard.jsx'));
 const CheckoutPage = lazy(() => import('./pages/CheckoutPage.jsx'));
+const PaymentCallbackPage = lazy(() => import('./pages/client/PaymentCallbackPage.jsx'));
 
 function PageLoader() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/support" element={<SupportPage />} />
+            <Route path="/dashboard/payment-callback" element={<PaymentCallbackPage />} />
           </Route>
 
           <Route element={<ProtectedRoute roles={['client']} />}>

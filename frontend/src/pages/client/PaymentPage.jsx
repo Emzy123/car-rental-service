@@ -39,7 +39,7 @@ export default function PaymentPage() {
           amount: Math.round(res.amount * 100),
           ref: res.reference,
           callback: (response) => {
-            window.location.href = `/dashboard/bookings/${bookingId}/payment-callback?reference=${response.reference}`;
+            window.location.href = `/dashboard/payment-callback?reference=${response.reference}`;
           },
         });
         handler.openIframe();

@@ -13,6 +13,7 @@ import {
   verifyWebhookSignature,
 } from '../services/paystack.js';
 import { sendBookingConfirmation } from '../services/email.js';
+import { resolveClientUrl } from '../utils/clientUrl.js';
 
 async function completePayment(bookingId, paymentId, paystackData) {
   const client = await pool.connect();
@@ -116,7 +117,7 @@ export async function initializePayment(req, res, next) {
       [booking_id, depositAmount, reference]
     );
 
-    const callbackUrl = `${config.clientUrl}/dashboard/bookings/${booking_id}/payment-callback`;
+    const callbackUrl = `${resolveClientUrl(req)}/dashboard/payment-callback`;
 
     const paystack = await initializeTransaction({
       email: booking.email,
@@ -148,48 +149,65 @@ export async function initializePayment(req, res, next) {
 export async function verifyPayment(req, res, next) {
   try {
     const { reference } = req.body;
-    if (!reference) throw new AppError('reference is required');
-
-    const paymentResult = await pool.query(
-      `SELECT p.*, b.client_id, b.status AS booking_status
-       FROM payments p
-       JOIN bookings b ON b.id = p.booking_id
-       WHERE p.paystack_reference = $1`,
-      [reference]
-    );
-
-    if (paymentResult.rows.length === 0) {
-      throw new AppError('Payment not found', 404);
-    }
-
-    const payment = paymentResult.rows[0];
-    if (payment.client_id !== req.user.id) {
-      throw new AppError('Access denied', 403);
-    }
-
-    if (payment.status === 'completed') {
-      return res.json({
-        status: 'success',
-        booking_id: payment.booking_id,
-        already_verified: true,
-      });
-    }
-
-    const verified = await verifyTransaction(reference);
-    if (verified.status !== 'success') {
-      throw new AppError('Payment was not successful', 400);
-    }
-
-    await completePayment(payment.booking_id, payment.id, verified);
-
-    res.json({
-      status: 'success',
-      booking_id: payment.booking_id,
-      reference,
-    });
+    const result = await processPaymentVerification(reference, req.user.id);
+    res.json(result);
   } catch (err) {
     next(err);
   }
+}
+
+/** Public callback handler — reference acts as the payment secret after Paystack redirect */
+export async function verifyPaymentCallback(req, res, next) {
+  try {
+    const { reference } = req.body;
+    const result = await processPaymentVerification(reference);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function processPaymentVerification(reference, userId = null) {
+  if (!reference) throw new AppError('reference is required');
+
+  const paymentResult = await pool.query(
+    `SELECT p.*, b.client_id, b.status AS booking_status
+     FROM payments p
+     JOIN bookings b ON b.id = p.booking_id
+     WHERE p.paystack_reference = $1`,
+    [reference]
+  );
+
+  if (paymentResult.rows.length === 0) {
+    throw new AppError('Payment not found', 404);
+  }
+
+  const payment = paymentResult.rows[0];
+  if (userId !== null && payment.client_id !== userId) {
+    throw new AppError('Access denied', 403);
+  }
+
+  if (payment.status === 'completed') {
+    return {
+      status: 'success',
+      booking_id: payment.booking_id,
+      already_verified: true,
+      reference,
+    };
+  }
+
+  const verified = await verifyTransaction(reference);
+  if (verified.status !== 'success') {
+    throw new AppError('Payment was not successful', 400);
+  }
+
+  await completePayment(payment.booking_id, payment.id, verified);
+
+  return {
+    status: 'success',
+    booking_id: payment.booking_id,
+    reference,
+  };
 }
 
 export async function paystackWebhook(req, res, next) {

@@ -27,6 +27,7 @@ export default function ClientDashboard() {
           <Route path="bookings" element={<MyBookingsPage />} />
           <Route path="saved" element={<SavedVehiclesPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="*" element={<Navigate to="bookings" replace />} />
         </Routes>
       </Suspense>
     </ClientLayout>

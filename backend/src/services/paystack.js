@@ -43,7 +43,7 @@ export async function initializeTransaction({
 }) {
   if (config.paystack.devMode) {
     return {
-      authorization_url: `${config.clientUrl}/dashboard/bookings/${metadata.booking_id}/payment-callback?reference=${reference}&dev=1`,
+      authorization_url: `${callbackUrl}?reference=${encodeURIComponent(reference)}&dev=1`,
       access_code: 'dev_mode',
       reference,
     };
