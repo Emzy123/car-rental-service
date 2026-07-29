@@ -22,6 +22,16 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    if (!token) return;
+    try {
+      const { user: me } = await apiRequest('/auth/me');
+      setUser(me);
+    } catch {
+      // silently ignore refresh failures
+    }
+  }, [token]);
+
   useEffect(() => {
     if (!token) {
       setLoading(false);
@@ -85,8 +95,9 @@ export function AuthProvider({ children }) {
       login,
       register,
       logout,
+      refreshUser,
     }),
-    [user, token, loading, login, register, logout]
+    [user, token, loading, login, register, logout, refreshUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

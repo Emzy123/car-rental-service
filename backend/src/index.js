@@ -5,24 +5,6 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
 import { config } from './config/index.js';
-
-// Sentry setup (optional)
-let Sentry;
-if (config.sentry.enabled) {
-  Sentry = await import('@sentry/node');
-  Sentry.init({
-    dsn: config.sentry.dsn,
-    environment: config.nodeEnv,
-    release: process.env.npm_package_version || '1.0.0',
-    tracesSampleRate: 0.1, // 10% of transactions for performance monitoring
-    profilesSampleRate: 0.1,
-    integrations: [
-      new Sentry.Integrations.Http({ tracing: true }),
-      new Sentry.Integrations.Express({ app }),
-    ],
-  });
-  console.log('[sentry] Error tracking enabled');
-}
 import authRoutes from './routes/authRoutes.js';
 import vehicleRoutes from './routes/vehicleRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
@@ -37,9 +19,29 @@ import { AppError } from './utils/errors.js';
 import { checkDatabaseHealth, closeDatabase } from './db/pool.js';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import fs from 'fs';
 
 const app = express();
+
+// Trust reverse proxy (Render, Vercel, Nginx) so req.protocol and req.ip are correct
+app.set('trust proxy', 1);
+
+// Sentry setup (optional — must come after `app` is defined)
+let Sentry;
+if (config.sentry.enabled) {
+  Sentry = await import('@sentry/node');
+  Sentry.init({
+    dsn: config.sentry.dsn,
+    environment: config.nodeEnv,
+    release: process.env.npm_package_version || '1.0.0',
+    tracesSampleRate: 0.1,
+    profilesSampleRate: 0.1,
+    integrations: [
+      new Sentry.Integrations.Http({ tracing: true }),
+      new Sentry.Integrations.Express({ app }),
+    ],
+  });
+  console.log('[sentry] Error tracking enabled');
+}
 
 // Security middleware
 app.use(helmet({
@@ -70,9 +72,15 @@ app.use('/api/auth/register', authLimiter);
 // Request logging
 app.use(morgan(config.nodeEnv === 'production' ? 'combined' : 'dev'));
 
+// Support comma-separated CLIENT_URL for multiple origins (e.g. Vercel preview deployments)
+const allowedOrigins = config.clientUrl
+  .split(',')
+  .map((u) => u.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: config.clientUrl,
+    origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
     credentials: true,
   })
 );
@@ -83,14 +91,14 @@ app.post(
   paystackWebhook
 );
 
-// Ensure uploads directory exists
+// Serve static files from uploads directory
+// upload.js creates the directory on import; here we just expose it via HTTP
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const uploadsDir = join(__dirname, '..', '..', 'uploads', 'avatars');
-fs.mkdirSync(uploadsDir, { recursive: true });
-
-// Serve static files from uploads directory
-app.use('/uploads', express.static(join(__dirname, '..', '..', 'uploads')));
+const uploadsRoot = process.env.UPLOAD_DIR
+  ? process.env.UPLOAD_DIR
+  : join(__dirname, '..', '..', 'uploads');
+app.use('/uploads', express.static(uploadsRoot));
 
 app.use(express.json());
 

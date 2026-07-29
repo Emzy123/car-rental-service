@@ -47,43 +47,50 @@ export async function searchVehicles({
 }) {
   const params = [];
   let paramIndex = 1;
-  
+
   // Build the search query
   const searchConditions = [];
-  
+
   if (query && query.trim()) {
     params.push(query.trim());
     searchConditions.push(`v.search_vector @@ plainto_tsquery('english', $${paramIndex++})`);
   }
-  
+
   if (startDate && endDate) {
+    // Push params FIRST so indices are correct when the SQL string is built
+    const endIdx = paramIndex;
+    const startIdx = paramIndex + 1;
+    const statusIdx = paramIndex + 2;
     params.push(endDate, startDate, BLOCKING_STATUSES);
+    paramIndex += 3;
     searchConditions.push(`NOT EXISTS (
       SELECT 1 FROM bookings b
       WHERE b.vehicle_id = v.id
-        AND b.status = ANY($${paramIndex + 2})
-        AND b.start_date < $${paramIndex}
-        AND b.end_date > $${paramIndex + 1}
+        AND b.status = ANY($${statusIdx})
+        AND b.start_date < $${endIdx}
+        AND b.end_date > $${startIdx}
     )`);
-    paramIndex += 3;
   }
-  
+
   // Always filter out unavailable vehicles
   searchConditions.push(`v.status NOT IN ('maintenance', 'retired')`);
-  
+
   const whereClause = searchConditions.join(' AND ');
-  
+
+  // Only include rank ordering if a full-text query was provided
+  const hasQuery = query && query.trim();
+  const rankSelect = hasQuery ? `, ts_rank(v.search_vector, plainto_tsquery('english', $1)) AS rank` : '';
+  const orderBy = hasQuery ? 'rank DESC, v.daily_rate ASC' : 'v.daily_rate ASC';
+
+  params.push(limit);
   const searchSql = `
-    SELECT v.*,
-      ts_rank(v.search_vector, plainto_tsquery('english', $1)) as rank
+    SELECT v.*${rankSelect}
     FROM vehicles v
     WHERE ${whereClause}
-    ORDER BY ${query ? 'rank DESC, ' : ''}v.daily_rate ASC
-    LIMIT $${paramIndex++}
+    ORDER BY ${orderBy}
+    LIMIT $${paramIndex}
   `;
-  
-  params.push(limit);
-  
+
   const result = await pool.query(searchSql, params);
   return result.rows;
 }

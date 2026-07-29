@@ -1,11 +1,25 @@
 import multer from 'multer';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import fs from 'fs';
 import { AppError } from '../utils/errors.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Resolve upload directory: prefer UPLOAD_DIR env var, fall back to repo-relative path
+const UPLOAD_DIR = process.env.UPLOAD_DIR
+  ? path.join(process.env.UPLOAD_DIR, 'avatars')
+  : path.resolve(__dirname, '..', '..', '..', 'uploads', 'avatars');
+
+// Ensure the directory exists at startup
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 // Configure storage
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/avatars/');
+  destination: (_req, _file, cb) => {
+    cb(null, UPLOAD_DIR);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -13,6 +27,7 @@ const storage = multer.diskStorage({
     cb(null, `user-${req.user.id}-${uniqueSuffix}${ext}`);
   },
 });
+
 
 // File filter
 const fileFilter = (req, file, cb) => {

@@ -28,6 +28,7 @@ export default function PaymentPage() {
         body: JSON.stringify({ booking_id: Number(bookingId) }),
       });
       if (res.authorization_url) {
+        // Handles both real Paystack redirect AND dev-mode simulated URL
         window.location.href = res.authorization_url;
         return;
       }
@@ -44,10 +45,7 @@ export default function PaymentPage() {
         handler.openIframe();
         return;
       }
-      // dev-mode: simulate success redirect
-      if (res.dev_mode) {
-        window.location.href = `/dashboard/bookings/${bookingId}/payment-callback?reference=${res.reference}`;
-      }
+      throw new Error('Payment initialization failed. Please try again.');
     } catch (err) {
       setError(err.message);
       setLoading(false);

@@ -122,7 +122,6 @@ export default function AdminDashboard() {
           <Suspense fallback={<div className="flex justify-center py-20"><Spinner size="lg" /></div>}>
             <Routes>
               <Route index element={<AdminOverview />} />
-              <Route path="fleet" element={<AdminFleet />} />
               <Route path="fleet/*" element={<AdminFleet />} />
               <Route path="bookings" element={<AdminBookings />} />
               <Route path="clients" element={<AdminClients />} />

@@ -169,8 +169,12 @@ export async function uploadAvatar(req, res, next) {
       return res.status(400).json({ error: true, message: 'No file uploaded' });
     }
 
-    // Generate public URL for the uploaded file
-    const avatarUrl = `${req.protocol}://${req.get('host')}/uploads/avatars/${req.file.filename}`;
+    // Generate public URL for the uploaded file — use BACKEND_URL env var when available
+    // to guarantee https:// in production regardless of proxy configuration
+    const baseUrl = process.env.BACKEND_URL
+      ? process.env.BACKEND_URL.replace(/\/$/, '')
+      : `${req.protocol}://${req.get('host')}`;
+    const avatarUrl = `${baseUrl}/uploads/avatars/${req.file.filename}`;
 
     // Update user's avatar_url in database
     const result = await pool.query(
