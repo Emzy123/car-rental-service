@@ -50,29 +50,32 @@ app.use(helmet({
 
 app.use(compression());
 
-// Rate limiting
+// Rate limiting — skip in Vercel serverless environment to avoid proxy IP lockouts
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: true, message: 'Too many requests, please try again later' },
+  skip: () => !!process.env.VERCEL,
 });
 app.use('/api/', limiter);
 
 // Stricter rate limit for auth endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 30,
   message: { error: true, message: 'Too many authentication attempts, please try again later' },
+  skip: () => !!process.env.VERCEL,
 });
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 
+
 // Request logging
 app.use(morgan(config.nodeEnv === 'production' ? 'combined' : 'dev'));
 
-// Support comma-separated CLIENT_URL for multiple origins (e.g. Vercel preview deployments)
+// Support comma-separated CLIENT_URL for multiple origins
 const allowedOrigins = config.clientUrl
   .split(',')
   .map((u) => u.trim())
@@ -80,10 +83,32 @@ const allowedOrigins = config.clientUrl
 
 app.use(
   cors({
-    origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (same-origin /api calls or curl)
+      if (!origin) return callback(null, true);
+
+      // Allow localhost for local development
+      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        return callback(null, true);
+      }
+
+      // Allow all Vercel domains (*.vercel.app)
+      if (origin.endsWith('.vercel.app') || origin.includes('vercel.app')) {
+        return callback(null, true);
+      }
+
+      // Allow configured origins
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Fallback allow for serverless environment
+      return callback(null, true);
+    },
     credentials: true,
   })
 );
+
 
 app.post(
   '/api/payments/webhook',
