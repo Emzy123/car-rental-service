@@ -5,9 +5,20 @@ import { validateBookingDates } from '../utils/booking.js';
 import { getOrSet, generateKey } from '../services/cache.js';
 import { config } from '../config/index.js';
 
+function getDefaultDates() {
+  const start = new Date();
+  start.setDate(start.getDate() + 1);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 3);
+  return {
+    start: start.toISOString().slice(0, 10),
+    end: end.toISOString().slice(0, 10),
+  };
+}
+
 export async function listVehicles(req, res, next) {
   try {
-    const {
+    let {
       start_date,
       end_date,
       fuel_type,
@@ -22,14 +33,19 @@ export async function listVehicles(req, res, next) {
       limit,
     } = req.query;
 
+    const defaults = getDefaultDates();
     if (!start_date || !end_date) {
-      return res.status(400).json({
-        error: true,
-        message: 'start_date and end_date query parameters are required',
-      });
+      start_date = defaults.start;
+      end_date = defaults.end;
+    } else {
+      try {
+        validateBookingDates(start_date, end_date);
+      } catch {
+        start_date = defaults.start;
+        end_date = defaults.end;
+      }
     }
 
-    validateBookingDates(start_date, end_date);
 
     // Generate cache key from search parameters
     const cacheKey = generateKey('vehicles', {
