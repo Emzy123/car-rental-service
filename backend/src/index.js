@@ -171,10 +171,15 @@ process.on('unhandledRejection', (reason) => {
   console.error('[server] Unhandled rejection:', reason);
 });
 
-app.listen(config.port, () => {
-  console.log(`[server] Running on port ${config.port} in ${config.nodeEnv} mode`);
-  if (config.paystack.devMode) {
-    console.log('[paystack] DEV MODE enabled — payments auto-simulate without API keys');
-  }
-  console.log(`[security] Rate limiting: 100 req/15min (10 for auth)`);
-});
+if (!process.env.VERCEL) {
+  app.listen(config.port, () => {
+    console.log(`[server] Running on port ${config.port} in ${config.nodeEnv} mode`);
+    if (config.paystack.devMode) {
+      console.log('[paystack] DEV MODE enabled — payments auto-simulate without API keys');
+    }
+    console.log(`[security] Rate limiting: 100 req/15min (10 for auth)`);
+  });
+}
+
+export default app;
+

@@ -10,19 +10,23 @@ const RETRY_DELAY_MS = 2000;
 const poolConfig = {
   connectionString: config.databaseUrl,
   ssl:
-    config.nodeEnv === 'production'
+    config.nodeEnv === 'production' || process.env.VERCEL
       ? { rejectUnauthorized: false }
       : undefined,
-  // Connection pool settings
-  max: 20, // Maximum number of clients in the pool
-  min: 5,  // Minimum number of clients to maintain
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 10000, // Return error after 10 seconds if connection not established
-  // Application name for monitoring
+  // Connection pool settings — adjust for serverless on Vercel
+  max: process.env.VERCEL ? 5 : 20,
+  min: process.env.VERCEL ? 0 : 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
   application_name: 'rental_service_api',
 };
 
-export const pool = new Pool(poolConfig);
+// Reuse pool instance across serverless invocations
+if (!globalThis.__pgPool) {
+  globalThis.__pgPool = new Pool(poolConfig);
+}
+export const pool = globalThis.__pgPool;
+
 
 // Connection error handling with reconnection logic
 pool.on('error', (err, client) => {
