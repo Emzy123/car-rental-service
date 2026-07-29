@@ -1,4 +1,6 @@
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+const rawApiUrl = import.meta.env.VITE_API_URL;
+const API_BASE = (import.meta.env.PROD && rawApiUrl?.includes('localhost')) ? '/api' : (rawApiUrl || '/api');
+
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
